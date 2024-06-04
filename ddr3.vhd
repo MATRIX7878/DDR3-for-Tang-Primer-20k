@@ -1,6 +1,6 @@
 LIBRARY IEEE;
 USE IEEE.STD_LOGIC_1164.ALL;
-USE IEEE.NUMERIC_STD.ALL;
+USE IEEE.NUMERIC_STD_UNSIGNED.ALL;
 
 ENTITY DDR3 IS
     GENERIC(ROW_WIDTH : INTEGER := 13;
@@ -64,7 +64,7 @@ TYPE FIVEB IS ARRAY (4 DOWNTO 0) OF BIT;
 SIGNAL cnt_read : STD_LOGIC_VECTOR (7 DOWNTO 0) := (OTHERS => '0');
 SIGNAL cnt_write : STD_LOGIC_VECTOR (7 DOWNTO 0) := (OTHERS => '0');
 
-SIGNAL state : UNSIGNED (3 DOWNTO 0);
+SIGNAL state : STD_LOGIC_VECTOR (3 DOWNTO 0);
 
 SIGNAL nRAS, nCAS, nWE : STD_LOGIC_VECTOR (3 DOWNTO 0);
 
@@ -74,46 +74,46 @@ SIGNAL A : ddr3a;
 TYPE ddr3ba IS ARRAY (2 DOWNTO 0) OF STD_LOGIC_VECTOR (3 DOWNTO 0);
 SIGNAL BA : ddr3ba;
 
-CONSTANT RST_WAIT : UNSIGNED (3 DOWNTO 0) := d"0";
-CONSTANT CKE_WAIT : UNSIGNED (3 DOWNTO 0) := d"1";
-CONSTANT CONFIG : UNSIGNED (3 DOWNTO 0) := d"2";
-CONSTANT ZQCL : UNSIGNED (3 DOWNTO 0) := d"3";
-CONSTANT IDLE : UNSIGNED (3 DOWNTO 0) := d"4";
-CONSTANT RED : UNSIGNED (3 DOWNTO 0) := d"5";
-CONSTANT WRTE : UNSIGNED (3 DOWNTO 0) := d"6";
-CONSTANT REFRESH : UNSIGNED (3 DOWNTO 0) := d"7";
-CONSTANT WRITE_LEVEL : UNSIGNED (3 DOWNTO 0) := d"8";
-CONSTANT READ_CALIB : UNSIGNED (3 DOWNTO 0) := d"9";
+CONSTANT RST_WAIT : STD_LOGIC_VECTOR (3 DOWNTO 0) := d"0";
+CONSTANT CKE_WAIT : STD_LOGIC_VECTOR (3 DOWNTO 0) := d"1";
+CONSTANT CONFIG : STD_LOGIC_VECTOR (3 DOWNTO 0) := d"2";
+CONSTANT ZQCL : STD_LOGIC_VECTOR (3 DOWNTO 0) := d"3";
+CONSTANT IDLE : STD_LOGIC_VECTOR (3 DOWNTO 0) := d"4";
+CONSTANT RED : STD_LOGIC_VECTOR (3 DOWNTO 0) := d"5";
+CONSTANT WRTE : STD_LOGIC_VECTOR (3 DOWNTO 0) := d"6";
+CONSTANT REFRESH : STD_LOGIC_VECTOR (3 DOWNTO 0) := d"7";
+CONSTANT WRITE_LEVEL : STD_LOGIC_VECTOR (3 DOWNTO 0) := d"8";
+CONSTANT READ_CALIB : STD_LOGIC_VECTOR (3 DOWNTO 0) := d"9";
 
 SIGNAL cycle : STD_LOGIC_VECTOR (4 DOWNTO 0);
 SIGNAL tick : STD_LOGIC;
-SIGNAL tick_count : UNSIGNED (16 DOWNTO 0) := d"50000";
+SIGNAL tick_count : STD_LOGIC_VECTOR (16 DOWNTO 0) := d"50000";
 
-CONSTANT CMD_SMR : UNSIGNED (2 DOWNTO 0) := (OTHERS => '0');
-CONSTANT CMD_ar : UNSIGNED (2 DOWNTO 0) := "1";
-CONSTANT CMD_PC : UNSIGNED (2 DOWNTO 0) := b"010";
-CONSTANT CMD_BA : UNSIGNED (2 DOWNTO 0) := b"011";
-CONSTANT CMD_W : UNSIGNED (2 DOWNTO 0) := b"100";
-CONSTANT CMD_R : UNSIGNED (2 DOWNTO 0) := b"101";
-CONSTANT CMD_ZQCL : UNSIGNED (2 DOWNTO 0) := b"110";
-CONSTANT CMD_NOP : UNSIGNED (2 DOWNTO 0) := (OTHERS => '1');
+CONSTANT CMD_SMR : STD_LOGIC_VECTOR (2 DOWNTO 0) := (OTHERS => '0');
+CONSTANT CMD_AR : STD_LOGIC_VECTOR (2 DOWNTO 0) := "1";
+CONSTANT CMD_PC : STD_LOGIC_VECTOR (2 DOWNTO 0) := b"010";
+CONSTANT CMD_BA : STD_LOGIC_VECTOR (2 DOWNTO 0) := b"011";
+CONSTANT CMD_W : STD_LOGIC_VECTOR (2 DOWNTO 0) := b"100";
+CONSTANT CMD_R : STD_LOGIC_VECTOR (2 DOWNTO 0) := b"101";
+CONSTANT CMD_ZQCL : STD_LOGIC_VECTOR (2 DOWNTO 0) := b"110";
+CONSTANT CMD_NOP : STD_LOGIC_VECTOR (2 DOWNTO 0) := (OTHERS => '1');
 
-CONSTANT MBL : UNSIGNED (1 DOWNTO 0) := "1";
-CONSTANT MCAS : UNSIGNED (3 DOWNTO 0) := b"0110";
-CONSTANT MCWL : UNSIGNED (2 DOWNTO 0) := "1";
-CONSTANT MWR : UNSIGNED (2 DOWNTO 0) := b"100";
-CONSTANT MDLLR : UNSIGNED (0 TO 0) := "1";
-CONSTANT MRTTNOM : UNSIGNED (2 DOWNTO 0) := (OTHERS => '0');
-CONSTANT MRTTWR : UNSIGNED (1 DOWNTO 0) := "1";
-CONSTANT MRTTWROFF : UNSIGNED (1 DOWNTO 0) := (OTHERS => '0');
-CONSTANT MDRIVE : UNSIGNED (1 DOWNTO 0) := (OTHERS => '0');
-CONSTANT MAL : UNSIGNED (1 DOWNTO 0) := (OTHERS => '0');
+CONSTANT MBL : STD_LOGIC_VECTOR (1 DOWNTO 0) := "1";
+CONSTANT MCAS : STD_LOGIC_VECTOR (3 DOWNTO 0) := b"0110";
+CONSTANT MCWL : STD_LOGIC_VECTOR (2 DOWNTO 0) := "1";
+CONSTANT MWR : STD_LOGIC_VECTOR (2 DOWNTO 0) := b"100";
+CONSTANT MDLLR : STD_LOGIC_VECTOR (0 TO 0) := "1";
+CONSTANT MRTTNOM : STD_LOGIC_VECTOR (2 DOWNTO 0) := (OTHERS => '0');
+CONSTANT MRTTWR : STD_LOGIC_VECTOR (1 DOWNTO 0) := "1";
+CONSTANT MRTTWROFF : STD_LOGIC_VECTOR (1 DOWNTO 0) := (OTHERS => '0');
+CONSTANT MDRIVE : STD_LOGIC_VECTOR (1 DOWNTO 0) := (OTHERS => '0');
+CONSTANT MAL : STD_LOGIC_VECTOR (1 DOWNTO 0) := (OTHERS => '0');
 
-SIGNAL MR0 : UNSIGNED (15 DOWNTO 0);
-SIGNAL MR1 : UNSIGNED (15 DOWNTO 0);
-SIGNAL MR2 : UNSIGNED (15 DOWNTO 0);
-SIGNAL MR2WR : UNSIGNED (15 DOWNTO 0);
-SIGNAL MR3 : UNSIGNED (15 DOWNTO 0);
+SIGNAL MR0 : STD_LOGIC_VECTOR (15 DOWNTO 0);
+SIGNAL MR1 : STD_LOGIC_VECTOR (15 DOWNTO 0);
+SIGNAL MR2 : STD_LOGIC_VECTOR (15 DOWNTO 0);
+SIGNAL MR2WR : STD_LOGIC_VECTOR (15 DOWNTO 0);
+SIGNAL MR3 : STD_LOGIC_VECTOR (15 DOWNTO 0);
 
 SIGNAL wleveldone : STD_LOGIC := '0';
 SIGNAL wlevelcnt : STD_LOGIC_VECTOR := (OTHERS => '0');
@@ -156,7 +156,7 @@ BEGIN
                     tick_count <= "0" WHEN (tick_count = 0) ELSE (tick_count - 1);
 
                     FOR i IN 0 TO 3 LOOP
-                        nRAS(i) & nCAS(i) & nWE(i) <= CMD_NOP;
+                        (nRAS(i), nCAS(i), nWE(i)) <= CMD_NOP;
                     END LOOP;
 
                     FOR i IN 0 TO 3 LOOP
@@ -170,19 +170,19 @@ BEGIN
                     dqs_hold <= '0';
 
                     CASE (state & cycle) IS
-                        WHEN (RST_WAIT & "XXXXX") => IF tick THEN
+                        WHEN (RST_WAIT & XXXXX) => IF tick THEN
                                 resetDelay <= '1';
-                                tick_count <= 500 * TO_UNSIGNED(USEC, 17) + 20;
+                                tick_count <= 500 * TO_STD_LOGIC_VECTOR(USEC, 17) + 20;
                                 state <= CKE_WAIT;
                             END IF;
-                        WHEN (CKE_WAIT & "XXXXX") => IF (tick_count = 15) THEN
+                        WHEN (CKE_WAIT & XXXXX) => IF (tick_count = 15) THEN
                                 DDR3_cke <= '1';
                             END IF;
                             IF tick THEN
                                 state <= CONFIG;
                                 cycle <= "0";
                             END IF;
-                        WHEN (CONFIG & "00000") => nRAS(0) & nCAS(0) & nWE(0) <= CMD_SMR;
+                        WHEN (CONFIG & 00000) => nRAS(0) & nCAS(0) & nWE(0) <= CMD_SMR;
                             BA(0) & A(0)(12 DOWNTO 0) <= MR2;
                         WHEN (CONFIG & MRD / 4) => nRAS(0) & nCAS(0) & nWE(0) <= CMD_SMR;
                             BA(0) & A(0)(12 DOWNTO 0) <= MR3;
@@ -193,7 +193,174 @@ BEGIN
                         WHEN (CONFIG & MRD * 3 / 4 + MD / 4 + 1) => nRAS(0) & nCAS(0) & nWE(0) <= CMD_ZQCL;
                             A(0)(10) <= 1;
                             tick_count <= 514;
+                            state <= ZQCL;
+                        WHEN (ZQCL & XXXXX) => IF tick THEN
+                            state <= WRITE_LEVEL;
+                            cycle <= 0;
+                        WHEN (IDLE & XXXXX) => IF (rd OR wr) THEN
+                                    (nRAS(0), nCAS(0), nWE(0)) <= CMD_BA;
+                                    BA(0) <= addr(ROW_WIDTH + COL_WIDTH + BANK_WIDTH - 1 DOWNTO ROW_WIDTH + COL_WIDTH);
+                                    A(0) <= addr(ROW_WIDTH + COL_WIDTH - 1 DOWNTO COL_WIDTH);
+                                    state <= RED WHEN rd ELSE WRTE;
+                                    IF rd THEN cnt_read <= x"FF" WHEN cnt_read = x"FF" ELSE cnt_read + 1 END IF;
+                                    IF wr THEN cnt_write <= x"FF" WHEN cnt_write = x"FF" ELSE cnt_write + 1 END IF;
+                                    cycle <= '1';
+                                    busy <= '1';
+                                    IF rd THEN dqs_hold <= '1' END IF;
+                                ELSIF DDR3_refresh THEN
+                                    (nRAS(0), nCAS(0), nWE(0)) <= CMD_AR;
+                                    state <= REFRESH;
+                                    cycle <= '1';
+                                    busy <= '1';
+                            END IF;
+                        WHEN (RED & (RCD / 4)) => (nRAS(RCD MOD 4), nCAS(RCD MOD 4), nWE(RCD MOD 4)) <= CMD_R;
+                            BA(RCD MOD 4) <= addr(ROW_WIDTH + COL_WIDTH + BANK_WIDTH - 1 DOWNTO ROW_WIDTH + COL_WIDTH);
+                            A(RCD MOD 4)(12) <= '1';
+                            A(RCD MOD 4)(10) <= '1';
+                            A(RCD MOD 4)(9 DOWNTO 0) <= addr(COL_WIDTH - 1 DOWNTO 0);
+                            dqs_hold <= '1';
+                        WHEN (RED & (RCD + CAS + SERDES) / 4 + 1) => data_ready <= '1';
+                        WHEN (RED & (RCD + CAS + SERDES) / 4 + 2) => data_ready <= '0';
+                            busy <= '0';
+                            state <= IDLE;
+                        WHEN (WRTE & RCD / 4) => (nRAS(RCD MOD 4), nCAS(RCD MOD 4), nWE(RCD MOD 4)) <= CMD_W;
+                            BA(RCD MOD 4) <= addr(ROW_WIDTH + COL_WIDTH + BANK_WIDTH - 1 DOWNTO ROW_WIDTH + COL_WIDTH);
+                            A(RCD MOD 4)(12) <= '0';
+                            A(RCD MOD 4)(10) <= '1';
+                            A(RCD MOD 4)(9 DOWNTO 0) <= addr(COL_WIDTH - 1 DOWNTO 0);
+                        WHEN (WRTE & (RCD + CWL) / 4) => dqs_out <= b"11111010";
+                            dqs_oen <= b"1100";
+                            dq_out(4) <= '0';
+                            FOR i 5 TO 7 LOOP
+                                dq_out(i) <= din;
+                            END LOOP;
+                            dq_oen <= b"1100";
+                            dm_out(5) <= NOT(addr(1 DOWNTO 0) = 0);
+                            dm_out(6) <= NOT(addr(1 DOWNTO 0) = 1);
+                            dm_out(7) <= NOT(addr(1 DOWNTO 0) = 2);
+                        WHEN (WRTE & (RCD + CWL) / 4 + 1) => dqs_out <= b"10000000";
+                            dqs_oen <= b"0111";
+                            dq_out(0) <= din;
+                            dq_out(1) <= '0';
+                            dq_oen <= b"0111";
+                            dm_out(0) <= NOT(addr(1 DOWNTO 0) = 3);
+                        WHEN (WRTE & 6) => busy <= '0';
+                            state <= IDLE;
+                        WHEN (REFRESH & RC / 4) => busy <= '0';
+                            state <= IDLE;
+                        WHEN (WRITE_LEVEL & "00000") => nRAS(0) & nCAS(0) & nWE(0) <= CMD_SMR;
+                            BA(0) & A(0)(12 DOWNTO 0) <= MR1 OR b"10000000";
+                            wlevelcnt <= '0';
+                            wstep <= x"12";
+                        WHEN (WRITE_LEVEL & WLMRD / 4 - 1) => dqs_out(0 TO 7) <= (OTHERS => '0');
+                            dqs_oen(0 TO 3) <= (OTHERS => '0');
+                        WHEN (WRITE_LEVEL & WLMRD / 4 + 1) => dqs_out(0 TO 7) <= (OTHERS => '0');
+                            dqs_oen(0 TO 3) <= (OTHERS => '0');
+                        WHEN (WRITE_LEVEL & WLMRD / 4 + 2) => dqs_out(0 TO 7) <= (OTHERS => '0');
+                            dqs_oen(0 TO 3) <= (OTHERS => '0');
+                        WHEN (WRITE_LEVEL & WLMRD / 4 + 3) => dqs_out(0 TO 7) <= (OTHERS => '0');
+                            dqs_oen(0 TO 3) <= (OTHERS => '0');
+                        WHEN (WRITE_LEVEL & WLMRD / 4 + 4) => dqs_out(0 TO 7) <= (OTHERS => '0');
+                            dqs_oen(0 TO 3) <= (OTHERS => '0');
+                        WHEN (WRITE_LEVEL & WLMRD / 4 + 5) => dqs_out(0 TO 7) <= (OTHERS => '0');
+                            dqs_oen(0 TO 3) <= (OTHERS => '0');
+                        WHEN (WRITE_LEVEL & WLMRD / 4) => dqs_out (0 TO 7) <= b"10101010";
+                            dqs_oen(0 TO 3) <= (OTHERS => '0');
+                        WHEN (WRITE_LEVEL & WLMRD / 4 + 6) => dqs_out (0 TO 7) <= (OTHERS => '0');  
+                            dqs_oen(0 TO 3) <= (OTHERS => '0');
+                            IF NOT DDR3_dq(0) OR DDR3_dq(8) THEN
+                                wstep <= wstep + 1;
+                                wlevelcnt <= '0';
+                                cycle <= WLMRD / 4 - 1;
+                            ELSE
+                                wlevelcnt <= wlevelcnt + 1;
+                                IF wlevelcnt = WLEVELCOUNT - 1 THEN
+                                    wleveldone <= '1';
+                                    nRAS(0) & nCAS(0) & nWE(0) <= CMD_SMR;
+                                    BA(0) & A(0)(12 DOWNTO 0) <= MR1;
+                                ELSE
+                                    cycle <= WLMRD / 4 - 1;
+                                END IF;
+                            END IF;
+                        WHEN (WRITE_LEVEL & (WLMRD + MRD) / 4 + 6) => nRAS(0) & nCAS(0) & nWE(0) <= CMD_SMR;
+                            BA(0) & A(0)(12 DOWNTO 0) <= MR2WR;
+                            END IF;
+                        WHEN (WRITE_LEVEL & (WLMRD + MRD) / 4 + 6) => cycle <= '0';
+                            state <= READ_CALIB;
+                        WHEN (READ_CALIB & "00000") => nRAS(0) & nCAS(0) & nWE(0) <= CMD_BA;
+                            BA(0) <= '0';
+                            A(0) <= '0';
+                            rcalibcnt <= '0';
+                        WHEN (READ_CALIB & RCD / 4) => nRAS(2) & nCAS(2) & nWE(2) <= CMD_R;
+                            A(2)(12) <= '1';
+                            A(2)(10) <= '0';
+                            A(2)(9 DOWNTO 0) <= (OTHERS => '0');
+                        WHEN (READ_CALIB & RCD / 4 + 10) => IF (rburstseen /= b"11") THEN
+                                rclksel <= rclksel + 1;
+                                rclkpos <= rclkpos + 1 WHEN rclksel = 7 ELSE rclkpos;
+                                rcalibcnt <= '0';
+                                cycle <= RCD / 4;
+                            ELSE
+                                rcalibcnt <= rcalibcnt + 1;
+                                IF rcalibcnt = RCALIBCOUNT - 1 THEN
+                                    rcalibdone <= '1';
+                                    nRAS(0) & nCAS(0) & nWE(0) <= CMD_PC;
+                                    BA(0) <= '0';
+                                    A(0) <= '0';
+                                ELSE
+                                    cycle <= RCD / 4;
+                                END IF;
+                            END IF;
+                        WHEN (READ_CALIB & RCD / 4 + 10 + RP / 4) => busy <= '0';
+                            state <= IDLE;
                     END CASE;
+                    ELSIF (NOT rstlock) THEN
+                        busy <= '1';
+                        data_ready <= '0';
+                        DDR3_cke <= '0';
+                        FOR i IN 0 TO 3 LOOP
+                            (nRAS(i), nCAS(i), nWE(i)) <= CMD_NOP;
+                        END LOOP;
+                        tick_count <= 60000;
+                        tick <= '0';
+                        cycle <= '0';
+                        wlevelcnt <= '0';
+                        wleveldone <= '0';
+                        wstep <= '0';
+                        rcalibcnt <= '0';
+                        rcalibdone <= '0';
+                        rclkpos <= '0';
+                        rclksel <= '0';
+                        resetDelay <= '0';
+                        state <= RST_WAIT;
+                END IF;
+            END IF;
+    END PROCESS;
+
+    PROCESS(ALL)
+        BEGIN
+            IF (RISING_EDGE(pclk)) THEN
+                IF rburst(0) THEN
+                    rburstseen(0) <= '1';
+                END IF;
+                IF rburst(1) THEN
+                    rburstseen(1) <= '1';
+                END IF;
+                IF (state & cycle) = (READ_CALIB & RCD / 4) THEN
+                    rburstseen <= '0';
+                END IF;
+                IF NOT rstlock THEN
+                    rburstseen <= '0';
+                END IF;
+            END IF;
+    END PROCESS;
+
+    PROCESS(ALL)
+        BEGIN
+            IF (RISING_EDGE(pclk)) THEN
+                dqs_read <= '0';
+                IF (state = RED OR state = READ_CALIB AND cycle = rclkpos + RCD / 4 + 1) THEN
+                    dqs_read <= b"1111";
                 END IF;
             END IF;
     END PROCESS;

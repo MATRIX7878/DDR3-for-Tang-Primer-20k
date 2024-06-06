@@ -1,6 +1,6 @@
 LIBRARY IEEE;
 USE IEEE.STD_LOGIC_1164.ALL;
-USE IEEE.NUMERIC_STD_UNSIGNED.ALL;
+USE IEEE.NUMERIC_STD.ALL;
 
 ENTITY DDR3 IS
     GENERIC(ROW_WIDTH : INTEGER := 13;
@@ -25,9 +25,7 @@ ENTITY DDR3 IS
          DDR3_dm : OUT STD_LOGIC_VECTOR (1 DOWNTO 0);
          DDR3_dqs : INOUT STD_LOGIC_VECTOR (1 DOWNTO 0);
          rclksel : OUT STD_LOGIC_VECTOR (2 DOWNTO 0);
-         DDR3_bank : OUT STD_LOGIC_VECTOR (2 DOWNTO 0);
          wstep : OUT STD_LOGIC_VECTOR (7 DOWNTO 0);
-         DDR3_addr : OUT STD_LOGIC_VECTOR (13 DOWNTO 0);
          DDR3_dq : INOUT STD_LOGIC_VECTOR (15 DOWNTO 0);
          dout : OUT STD_LOGIC_VECTOR (15 DOWNTO 0);
          debug : OUT STD_LOGIC_VECTOR (63 DOWNTO 0);
@@ -128,6 +126,136 @@ SIGNAL rcalibcnt : STD_LOGIC_VECTOR (3 DOWNTO 0) := (OTHERS => '0');
 CONSTANT WLEVELCOUNT : INTEGER := 1;
 CONSTANT RCALIBCOUNT : INTEGER := 8;
 
+SIGNAL dllstep : STD_LOGIC_VECTOR (7 DOWNTO 0);
+
+TYPE dqs_addr IS ARRAY (2 DOWNTO 0) OF STD_LOGIC_VECTOR (1 DOWNTO 0);
+SIGNAL dqs_waddr, dqs_raddr : dqs_addr;
+
+SIGNAL clk_dqsr : STD_LOGIC_VECTOR (1 DOWNTO 0);
+SIGNAL clk_dqsw : STD_LOGIC_VECTOR (1 DOWNTO 0);
+SIGNAL clk_dqsw270 : STD_LOGIC_VECTOR (1 DOWNTO 0);
+
+SIGNAL dq_buf, dq_buf_oen : STD_LOGIC_VECTOR (15 DOWNTO 0);
+SIGNAL dqs_buf, dqs_buf_oen, dqs_buf_delayed : STD_LOGIC_VECTOR (1 DOWNTO 0);
+
+COMPONENT DQS 
+    GENERIC( 
+        FIFO_MODE_SEL:bit:='0'; 
+        RD_PNTR : bit_vector:="000"; 
+        DQS_MODE:string:="X1"; 
+        HWL:string:="false"; 
+        GSREN : string:="false" 
+    ); 
+    PORT( 
+        DQSIN,PCLK,FCLK,RESET:IN std_logic; 
+        READ:IN std_logic_vector(3 downto 0); 
+        RCLKSEL:IN std_logic_vector(2 downto 0); 
+        DLLSTEP,WSTEP:IN std_logic_vector(7 downto 0); 
+        RLOADN,RMOVE,RDIR,HOLD:IN std_logic; 
+        WLOADN,WMOVE,WDIR:IN std_logic; 
+        DQSR90,DQSW0,DQSW270:OUT std_logic; 
+        RPOINT, WPOINT:OUT std_logic_vector(2 downto 0); 
+        RVALID,RBURST,RFLAG,WFLAG:OUT std_logic 
+    ); 
+END COMPONENT;
+
+COMPONENT DLL 
+    GENERIC( 
+        DLL_FORCE:integer:=0; 
+        DIV_SEL:bit:='1'; 
+        CODESCAL:STRING:="000"; 
+        SCAL_EN:STRING:="true" 
+    ); 
+    PORT( 
+        CLKIN:IN std_logic; 
+        STOP:IN std_logic; 
+        RESET:IN std_logic; 
+        UPDNCNTL:IN std_logic; 
+        LOCK:OUT std_logic; 
+        STEP:OUT std_logic_vector(7 downto 0) 
+    ); 
+END COMPONENT;
+
+COMPONENT OSER8_MEM 
+    GENERIC (GSREN:string:="false"; 
+        LSREN:string:="true"; 
+        HWL:string:="false"; 
+        TXCLK_POL:bit:='0'; 
+        TCLK_SOURCE:string:="DQSW" 
+    ); 
+    PORT( 
+        Q0:OUT std_logic; 
+        Q1:OUT std_logic;  
+        D0:IN std_logic; 
+        D1:IN std_logic; 
+        D2:IN std_logic; 
+        D3:IN std_logic; 
+        D4:IN std_logic; 
+        D5:IN std_logic; 
+        D6:IN std_logic; 
+        D7:IN std_logic; 
+        TX0:IN std_logic; 
+        TX1:IN std_logic; 
+        TX2:IN std_logic; 
+        TX3:IN std_logic; 
+        TCLK:IN std_logic; 
+        FCLK:IN std_logic; 
+        PCLK:IN std_logic; 
+        RESET:IN std_logic 
+    ); 
+END COMPONENT;
+
+COMPONENT IDES8_MEM 
+    GENERIC (GSREN:string:="false"; 
+        LSREN:string:="true" 
+    );
+    PORT( 
+        Q0:OUT std_logic; 
+        Q1:OUT std_logic;  
+        Q2:OUT std_logic; 
+        Q3:OUT std_logic; 
+        Q4:OUT std_logic; 
+        Q5:OUT std_logic; 
+        Q6:OUT std_logic; 
+        Q7:OUT std_logic; 
+        D:IN std_logic; 
+        ICLK:IN std_logic; 
+        FCLK:IN std_logic; 
+        PCLK:IN std_logic; 
+        WADDR:IN std_logic_vector(2 downto 0); 
+        RADDR:IN std_logic_vector(2 downto 0); 
+        CALIB:IN std_logic; 
+        RESET:IN std_logic 
+    ); 
+END COMPONENT;
+
+COMPONENT OSER8 
+    GENERIC (GSREN:string:="false"; 
+        LSREN:string:="true";
+        HWL:string:="false"; 
+        TXCLK_POL:bit:='0' 
+         ); 
+   PORT( 
+        Q0:OUT std_logic; 
+        Q1:OUT std_logic; 
+        D0:IN std_logic; 
+        D1:IN std_logic; 
+        D2:IN std_logic; 
+        D3:IN std_logic; 
+        D4:IN std_logic; 
+        D5:IN std_logic; 
+        D6:IN std_logic; 
+        D7:IN std_logic; 
+        TX0:IN std_logic; 
+        TX1:IN std_logic;  
+        TX2:IN std_logic; 
+        TX3:IN std_logic; 
+        FCLK:IN std_logic; 
+        PCLK:IN std_logic; 
+        RESET:IN std_logic 
+    ); 
+END COMPONENT; 
+
 BEGIN
     PROCESS(ALL)
         BEGIN
@@ -151,13 +279,14 @@ BEGIN
 
             IF RISING_EDGE(pclk) THEN
                 IF (rstlock) THEN
-                    cycle <= d"31" WHEN (cycle = d"31") ELSE (cycle + 1);
-                    tick <= '1' WHEN (tick_count = 1);
-                    tick_count <= "0" WHEN (tick_count = 0) ELSE (tick_count - 1);
+                    cycle <= d"31" WHEN (cycle = d"31") ELSE (cycle + '1');
+                    tick <= '1' WHEN (tick_count = d"1");
+                    tick_count <= "0" WHEN (tick_count = d"0") ELSE (tick_count - '1');
 
-                    FOR i IN 0 TO 3 LOOP
-                        (nRAS(i), nCAS(i), nWE(i)) <= CMD_NOP;
-                    END LOOP;
+                    (nRAS(0), nCAS(0), nWE(0)) <= CMD_NOP;
+                    (nRAS(1), nCAS(1), nWE(1)) <= CMD_NOP;
+                    (nRAS(2), nCAS(2), nWE(2)) <= CMD_NOP;
+                    (nRAS(3), nCAS(3), nWE(3)) <= CMD_NOP;
 
                     FOR i IN 0 TO 3 LOOP
                         A(i) <= "0";
@@ -172,45 +301,50 @@ BEGIN
                     CASE (state & cycle) IS
                         WHEN (RST_WAIT & XXXXX) => IF tick THEN
                                 resetDelay <= '1';
-                                tick_count <= 500 * TO_STD_LOGIC_VECTOR(USEC, 17) + 20;
+                                tick_count <= d"500" * STD_LOGIC_VECTOR(TO_UNSIGNED(USEC, 17)) + 20;
                                 state <= CKE_WAIT;
                             END IF;
-                        WHEN (CKE_WAIT & XXXXX) => IF (tick_count = 15) THEN
+                        WHEN (CKE_WAIT & XXXXX) => IF (tick_count = d"15") THEN
                                 DDR3_cke <= '1';
                             END IF;
                             IF tick THEN
                                 state <= CONFIG;
                                 cycle <= "0";
                             END IF;
-                        WHEN (CONFIG & 00000) => nRAS(0) & nCAS(0) & nWE(0) <= CMD_SMR;
-                            BA(0) & A(0)(12 DOWNTO 0) <= MR2;
-                        WHEN (CONFIG & MRD / 4) => nRAS(0) & nCAS(0) & nWE(0) <= CMD_SMR;
-                            BA(0) & A(0)(12 DOWNTO 0) <= MR3;
-                        WHEN (CONFIG & NRD / 2) => nRAS(0) & nCAS(0) & nWE(0) <= CMD_SMR;
-                            BA(0) & A(0)(12 DOWNTO 0) <= MR1;
-                        WHEN (CONFIG & MRD * 3 / 4) => nRAS(0) & nCAS(0) & nWE(0) <= CMD_SMR;
-                            BA(0) & A(0)(12 DOWNTO 0) <= MR0;
-                        WHEN (CONFIG & MRD * 3 / 4 + MD / 4 + 1) => nRAS(0) & nCAS(0) & nWE(0) <= CMD_ZQCL;
-                            A(0)(10) <= 1;
-                            tick_count <= 514;
+                        WHEN (CONFIG & 00000) => (nRAS(0), nCAS(0), nWE(0)) <= CMD_SMR;
+                            BA(0) <= "0" & MR2(15 DOWNTO 13);
+                            A(0)(12 DOWNTO 0) <= MR2(12 DOWNTO 0);
+                        WHEN (CONFIG & MRD / 4) => (nRAS(0), nCAS(0), nWE(0)) <= CMD_SMR;
+                            BA(0) <= "0" & MR3(15 DOWNTO 13);
+                            A(0)(12 DOWNTO 0) <= MR3(12 DOWNTO 0);
+                        WHEN (CONFIG & NRD / 2) => (nRAS(0), nCAS(0), nWE(0)) <= CMD_SMR;
+                            BA(0) <= "0" & MR1(15 DOWNTO 13);
+                            A(0)(12 DOWNTO 0) <= MR1(12 DOWNTO 0);
+                        WHEN (CONFIG & MRD * 3 / 4) => (nRAS(0), nCAS(0), nWE(0)) <= CMD_SMR;
+                            BA(0) <= "0" & MR0(15 DOWNTO 13);
+                            A(0)(12 DOWNTO 0) <= MR0(12 DOWNTO 0);
+                        WHEN (CONFIG & MRD * 3 / 4 + MD / 4 + 1) => (nRAS(0), nCAS(0), nWE(0)) <= CMD_ZQCL;
+                            A(0)(10) <= '1';
+                            tick_count <= d"514";
                             state <= ZQCL;
                         WHEN (ZQCL & XXXXX) => IF tick THEN
                             state <= WRITE_LEVEL;
-                            cycle <= 0;
+                            cycle <= "0";
+                        END IF;
                         WHEN (IDLE & XXXXX) => IF (rd OR wr) THEN
                                     (nRAS(0), nCAS(0), nWE(0)) <= CMD_BA;
                                     BA(0) <= addr(ROW_WIDTH + COL_WIDTH + BANK_WIDTH - 1 DOWNTO ROW_WIDTH + COL_WIDTH);
                                     A(0) <= addr(ROW_WIDTH + COL_WIDTH - 1 DOWNTO COL_WIDTH);
                                     state <= RED WHEN rd ELSE WRTE;
-                                    IF rd THEN cnt_read <= x"FF" WHEN cnt_read = x"FF" ELSE cnt_read + 1 END IF;
-                                    IF wr THEN cnt_write <= x"FF" WHEN cnt_write = x"FF" ELSE cnt_write + 1 END IF;
-                                    cycle <= '1';
+                                    IF rd THEN cnt_read <= x"FF" WHEN cnt_read = x"FF" ELSE cnt_read + '1'; END IF;
+                                    IF wr THEN cnt_write <= x"FF" WHEN cnt_write = x"FF" ELSE cnt_write + '1'; END IF;
+                                    cycle <= "1";
                                     busy <= '1';
-                                    IF rd THEN dqs_hold <= '1' END IF;
+                                    IF rd THEN dqs_hold <= '1'; END IF;
                                 ELSIF DDR3_refresh THEN
                                     (nRAS(0), nCAS(0), nWE(0)) <= CMD_AR;
                                     state <= REFRESH;
-                                    cycle <= '1';
+                                    cycle <= "1";
                                     busy <= '1';
                             END IF;
                         WHEN (RED & (RCD / 4)) => (nRAS(RCD MOD 4), nCAS(RCD MOD 4), nWE(RCD MOD 4)) <= CMD_R;
@@ -230,27 +364,28 @@ BEGIN
                             A(RCD MOD 4)(9 DOWNTO 0) <= addr(COL_WIDTH - 1 DOWNTO 0);
                         WHEN (WRTE & (RCD + CWL) / 4) => dqs_out <= b"11111010";
                             dqs_oen <= b"1100";
-                            dq_out(4) <= '0';
-                            FOR i 5 TO 7 LOOP
+                            dq_out(4) <= "0";
+                            FOR i IN 5 TO 7 LOOP
                                 dq_out(i) <= din;
                             END LOOP;
                             dq_oen <= b"1100";
-                            dm_out(5) <= NOT(addr(1 DOWNTO 0) = 0);
-                            dm_out(6) <= NOT(addr(1 DOWNTO 0) = 1);
-                            dm_out(7) <= NOT(addr(1 DOWNTO 0) = 2);
+                            dm_out(5) <= NOT(addr(1 DOWNTO 0) = b"00");
+                            dm_out(6) <= NOT(addr(1 DOWNTO 0) = b"01");
+                            dm_out(7) <= NOT(addr(1 DOWNTO 0) = b"10");
                         WHEN (WRTE & (RCD + CWL) / 4 + 1) => dqs_out <= b"10000000";
                             dqs_oen <= b"0111";
                             dq_out(0) <= din;
-                            dq_out(1) <= '0';
+                            dq_out(1) <= "0";
                             dq_oen <= b"0111";
                             dm_out(0) <= NOT(addr(1 DOWNTO 0) = 3);
                         WHEN (WRTE & 6) => busy <= '0';
                             state <= IDLE;
                         WHEN (REFRESH & RC / 4) => busy <= '0';
                             state <= IDLE;
-                        WHEN (WRITE_LEVEL & "00000") => nRAS(0) & nCAS(0) & nWE(0) <= CMD_SMR;
-                            BA(0) & A(0)(12 DOWNTO 0) <= MR1 OR b"10000000";
-                            wlevelcnt <= '0';
+                        WHEN (WRITE_LEVEL & "00000") => (nRAS(0), nCAS(0), nWE(0)) <= CMD_SMR;
+                            BA(0) <= "0" & MR1(15 DOWNTO 13);
+                            A(0)(12 DOWNTO 0) <= MR1(12 DOWNTO 0) OR b"10000100";
+                            wlevelcnt <= "0";
                             wstep <= x"12";
                         WHEN (WRITE_LEVEL & WLMRD / 4 - 1) => dqs_out(0 TO 7) <= (OTHERS => '0');
                             dqs_oen(0 TO 3) <= (OTHERS => '0');
@@ -268,30 +403,31 @@ BEGIN
                             dqs_oen(0 TO 3) <= (OTHERS => '0');
                         WHEN (WRITE_LEVEL & WLMRD / 4 + 6) => dqs_out (0 TO 7) <= (OTHERS => '0');  
                             dqs_oen(0 TO 3) <= (OTHERS => '0');
-                            IF NOT DDR3_dq(0) OR DDR3_dq(8) THEN
+                            IF NOT DDR3_dq(0) OR NOT DDR3_dq(8) THEN
                                 wstep <= wstep + 1;
-                                wlevelcnt <= '0';
-                                cycle <= WLMRD / 4 - 1;
+                                wlevelcnt <= "0";
+                                cycle <= TO_UNSIGNED(WLMRD, 5) / 4 - 1;
                             ELSE
                                 wlevelcnt <= wlevelcnt + 1;
                                 IF wlevelcnt = WLEVELCOUNT - 1 THEN
                                     wleveldone <= '1';
-                                    nRAS(0) & nCAS(0) & nWE(0) <= CMD_SMR;
-                                    BA(0) & A(0)(12 DOWNTO 0) <= MR1;
+                                    (nRAS(0), nCAS(0), nWE(0)) <= CMD_SMR;
+                                    BA(0) <= "0" & MR1(15 DOWNTO 13);
+                                    A(0)(12 DOWNTO 0) <= MR1(12 DOWNTO 0);
                                 ELSE
                                     cycle <= WLMRD / 4 - 1;
                                 END IF;
                             END IF;
-                        WHEN (WRITE_LEVEL & (WLMRD + MRD) / 4 + 6) => nRAS(0) & nCAS(0) & nWE(0) <= CMD_SMR;
+                        WHEN (WRITE_LEVEL & (WLMRD + MRD) / 4 + 6) => (nRAS(0), nCAS(0), nWE(0)) <= CMD_SMR;
                             BA(0) & A(0)(12 DOWNTO 0) <= MR2WR;
                             END IF;
                         WHEN (WRITE_LEVEL & (WLMRD + MRD) / 4 + 6) => cycle <= '0';
                             state <= READ_CALIB;
-                        WHEN (READ_CALIB & "00000") => nRAS(0) & nCAS(0) & nWE(0) <= CMD_BA;
+                        WHEN (READ_CALIB & "00000") => (nRAS(0), nCAS(0), nWE(0)) <= CMD_BA;
                             BA(0) <= '0';
                             A(0) <= '0';
                             rcalibcnt <= '0';
-                        WHEN (READ_CALIB & RCD / 4) => nRAS(2) & nCAS(2) & nWE(2) <= CMD_R;
+                        WHEN (READ_CALIB & RCD / 4) => (nRAS(2), nCAS(2), nWE(2)) <= CMD_R;
                             A(2)(12) <= '1';
                             A(2)(10) <= '0';
                             A(2)(9 DOWNTO 0) <= (OTHERS => '0');
@@ -318,9 +454,10 @@ BEGIN
                         busy <= '1';
                         data_ready <= '0';
                         DDR3_cke <= '0';
-                        FOR i IN 0 TO 3 LOOP
-                            (nRAS(i), nCAS(i), nWE(i)) <= CMD_NOP;
-                        END LOOP;
+                        (nRAS(0), nCAS(0), nWE(0)) <= CMD_NOP;
+                        (nRAS(1), nCAS(1), nWE(1)) <= CMD_NOP;
+                        (nRAS(2), nCAS(2), nWE(2)) <= CMD_NOP;
+                        (nRAS(3), nCAS(3), nWE(3)) <= CMD_NOP;
                         tick_count <= 60000;
                         tick <= '0';
                         cycle <= '0';
@@ -364,4 +501,229 @@ BEGIN
                 END IF;
             END IF;
     END PROCESS;
+
+    delay:DLL 
+        GENERIC MAP( 
+            CODESCAL=>"101", 
+            SCAL_EN=>"true" 
+        ) 
+        PORT MAP( 
+            CLKIN=>fclk, 
+            STOP=>0, 
+            RESET=>NOT reset, 
+            UPDNCNTL=>0, 
+            LOCK=>dlllock, 
+            STEP=>dllstep 
+        );
+
+    gen_dqs_cont : FOR i in 0 TO 1 GENERATE
+       u_dqs:DQS 
+            GENERIC MAP( 
+                DQS_MODE=>"X4", 
+                HWL=>"false"
+            ) 
+            PORT MAP( 
+                DQSIN=>DDR3_dqs(i), 
+                PCLK=>pclk, 
+                FCLK=>fclk, 
+                RESET=>rstlock, 
+                READ=>dqs_read, 
+                RCLKSEL=>rclksel, 
+                DLLSTEP=>dllstep, 
+                WSTEP=>wstep, 
+                RLOADN=>0, 
+                RMOVE=>0,  
+                HOLD=>dqs_hold, 
+                WLOADN=>0,  
+                WMOVE=>0, , 
+                DQSR90=>clk_dqsr(i),  
+                DQSW0=>clk_dqsw(i),  
+                DQSW270=>clk_dqsw270(i), 
+                RPOINT=>dqs_raddr(i), 
+                WPOINT=>dqs_waddr(i), 
+                RBURST=>rburst(i)
+            ); 
+    END GENERATE;
+
+    gen_dq : FOR i in 0 TO 15 GENERATE
+        oser_dq:OSER8_MEM 
+            GENERIC MAP (
+                TCLK_SOURCE=>"DQSW270"
+                ) 
+            PORT MAP ( 
+                Q0=>dq_buf(i), 
+                Q1=>dq_buf_oen(i), 
+                D0=>dq_out(0)(i), 
+                D1=>dq_out(1)(i), 
+                D2=>dq_out(2)(i), 
+                D3=>dq_out(3)(i), 
+                D4=>dq_out(4)(i), 
+                D5=>dq_out(5)(i), 
+                D6=>dq_out(6)(i), 
+                D7=>dq_out(7)(i), 
+                TX0=>dq_oen(0), 
+                TX1=>dq_oen(1), 
+                TX2=>dq_oen(2), 
+                TX3=>dq_oen(3), 
+                TCLK=>clk_dqsw270(i / 8), 
+                FCLK=>fclk,  
+                PCLK=>pclk, 
+                RESET=>(NOT rstlock OR NOT dlllock)
+            );
+
+        DDR3_dq(i) <= 'Z' WHEN dq_buf_oen(i) ELSE dq_buf(i);
+
+        iser_dq:IDES8_MEM 
+            PORT MAP ( 
+                Q0=>dq_in(0)(i), 
+                Q1=>dq_in(1)(i), 
+                Q2=>dq_in(2)(i), 
+                Q3=>dq_in(3)(i), 
+                Q4=>dq_in(4)(i), 
+                Q5=>dq_in(5)(i), 
+                Q6=>dq_in(6)(i), 
+                Q7=>dq_in(7)(i), 
+                D=>DDR3_dq(i), 
+                ICLK=>clk_dqsr(i / 8), 
+                FCLK=>fclk, 
+                PCLK=>pclk, 
+                WADDR=>dqs_waddr(i / 8), 
+                RADDR=>dqs_raddr(i / 8), 
+                CALIB=>0, 
+                RESET=>NOT rstlock 
+            );
+    END GENERATE;
+
+    gen_dqs : FOR i IN 0 TO 1 GENERATE
+        oser_dqs:OSER8_MEM 
+            GENERIC MAP (
+                TCLK_SOURCE=>"DQSW270"
+                ) 
+            PORT MAP ( 
+                Q0=>dqs_buf(i), 
+                Q1=>dqs_buf_oen(i), 
+                D0=>dqs_out(0)(i), 
+                D1=>dqs_out(1)(i), 
+                D2=>dqs_out(2)(i), 
+                D3=>dqs_out(3)(i), 
+                D4=>dqs_out(4)(i), 
+                D5=>dqs_out(5)(i), 
+                D6=>dqs_out(6)(i), 
+                D7=>dqs_out(7)(i), 
+                TX0=>dqs_oen(0), 
+                TX1=>dqs_oen(1), 
+                TX2=>dqs_oen(2), 
+                TX3=>dqs_oen(3), 
+                TCLK=>clk_dqsw(i), 
+                FCLK=>fclk,  
+                PCLK=>pclk, 
+                RESET=>NOT rstlock
+            );
+
+        DDR3_dqs(i) <= 'Z' WHEN dqs_buf_oen(i) ELSE dqs_buf (i);
+
+        oser_dq:OSER8_MEM 
+            GENERIC MAP (
+                TCLK_SOURCE=>"DQSW270"
+                ) 
+            PORT MAP ( 
+                Q0=>DDR3_dm(i),  
+                D0=>dm_out(0)(i), 
+                D1=>dm_out(1)(i), 
+                D2=>dm_out(2)(i), 
+                D3=>dm_out(3)(i), 
+                D4=>dm_out(4)(i), 
+                D5=>dm_out(5)(i), 
+                D6=>dm_out(6)(i), 
+                D7=>dm_out(7)(i), 
+                TCLK=>clk_dqsw270(i), 
+                FCLK=>fclk,  
+                PCLK=>pclk, 
+                RESET=>NOT rstlock
+            );
+    END GENERATE;
+
+    oser_nras:OSER8 
+        PORT MAP ( 
+              Q0=>DDR3_ras,  
+              D0=>nRAS(0), 
+              D1=>nRAS(1), 
+              D2=>nRAS(2),  
+              D3=>nRAS(3), 
+              D4=>nRAS(4), 
+              D5=>nRAS(5), 
+              D6=>nRAS(6), 
+              D7=>nRAS(7), 
+              FCLK=>fclk, 
+              PCLK=>pclk, 
+              RESET=>NOT rstlock 
+        );
+
+    oser_ncas:OSER8 
+        PORT MAP ( 
+              Q0=>DDR3_cas,  
+              D0=>nCAS(0), 
+              D1=>nCAS(1), 
+              D2=>nCAS(2),  
+              D3=>nCAS(3), 
+              D4=>nCAS(4), 
+              D5=>nCAS(5), 
+              D6=>nCAS(6), 
+              D7=>nCAS(7), 
+              FCLK=>fclk, 
+              PCLK=>pclk, 
+              RESET=>NOT rstlock 
+        );
+
+    oser_nwe:OSER8 
+        PORT MAP ( 
+              Q0=>DDR3_we,  
+              D0=>nWE(0), 
+              D1=>nWE(1), 
+              D2=>nWE(2),  
+              D3=>nWE(3), 
+              D4=>nWE(4), 
+              D5=>nWE(5), 
+              D6=>nWE(6), 
+              D7=>nWE(7), 
+              FCLK=>fclk, 
+              PCLK=>pclk, 
+              RESET=>NOT rstlock 
+        );
+
+    gena : FOR i IN 0 TO ROW_WIDTH - 1 GENERATE
+          oser_nwe:OSER8 
+            PORT MAP ( 
+                  Q0=>DDR3_a(i),  
+                  D0=>A(0)(i), 
+                  D1=>A(1)(i), 
+                  D2=>A(2)(i),  
+                  D3=>A(3)(i), 
+                  D4=>A(4)(i), 
+                  D5=>A(5)(i), 
+                  D6=>A(6)(i), 
+                  D7=>A(7)(i), 
+                  FCLK=>fclk, 
+                  PCLK=>pclk, 
+                  RESET=>NOT rstlock 
+            );
+    END GENERATE;
+
+    genba : FOR i IN 0 TO 2 GENERATE
+          oser_nwe:OSER8 
+            PORT MAP ( 
+                  Q0=>DDR3_ba(i),  
+                  D0=>BA(0)(i), 
+                  D1=>BA(1)(i), 
+                  D2=>BA(2)(i),  
+                  D3=>BA(3)(i), 
+                  D4=>BA(4)(i), 
+                  D5=>BA(5)(i), 
+                  D6=>BA(6)(i), 
+                  D7=>BA(7)(i), 
+                  FCLK=>fclk, 
+                  PCLK=>pclk, 
+                  RESET=>NOT rstlock 
+            );
+    END GENERATE;
 END ARCHITECTURE;

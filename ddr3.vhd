@@ -1,6 +1,6 @@
 LIBRARY IEEE;
 USE IEEE.STD_LOGIC_1164.ALL;
-USE IEEE.NUMERIC_STD.ALL;
+USE IEEE.NUMERIC_STD_UNSIGNED.ALL;
 
 ENTITY DDR3 IS
     GENERIC(ROW_WIDTH : INTEGER := 13;
@@ -299,25 +299,25 @@ BEGIN
                     dqs_hold <= '0';
 
                     CASE (state & cycle) IS
-                        WHEN (RST_WAIT & XXXXX) => IF tick THEN
+                        WHEN (RST_WAIT & "XXXXX") => IF tick THEN
                                 resetDelay <= '1';
-                                tick_count <= d"500" * STD_LOGIC_VECTOR(TO_UNSIGNED(USEC, 17)) + 20;
+                                tick_count <= d"500" * USEC + 20;
                                 state <= CKE_WAIT;
                             END IF;
-                        WHEN (CKE_WAIT & XXXXX) => IF (tick_count = d"15") THEN
+                        WHEN (CKE_WAIT & "XXXXX") => IF (tick_count = d"15") THEN
                                 DDR3_cke <= '1';
                             END IF;
                             IF tick THEN
                                 state <= CONFIG;
                                 cycle <= "0";
                             END IF;
-                        WHEN (CONFIG & 00000) => (nRAS(0), nCAS(0), nWE(0)) <= CMD_SMR;
+                        WHEN (CONFIG & "00000") => (nRAS(0), nCAS(0), nWE(0)) <= CMD_SMR;
                             BA(0) <= "0" & MR2(15 DOWNTO 13);
                             A(0)(12 DOWNTO 0) <= MR2(12 DOWNTO 0);
                         WHEN (CONFIG & MRD / 4) => (nRAS(0), nCAS(0), nWE(0)) <= CMD_SMR;
                             BA(0) <= "0" & MR3(15 DOWNTO 13);
                             A(0)(12 DOWNTO 0) <= MR3(12 DOWNTO 0);
-                        WHEN (CONFIG & NRD / 2) => (nRAS(0), nCAS(0), nWE(0)) <= CMD_SMR;
+                        WHEN (CONFIG & MRD / 2) => (nRAS(0), nCAS(0), nWE(0)) <= CMD_SMR;
                             BA(0) <= "0" & MR1(15 DOWNTO 13);
                             A(0)(12 DOWNTO 0) <= MR1(12 DOWNTO 0);
                         WHEN (CONFIG & MRD * 3 / 4) => (nRAS(0), nCAS(0), nWE(0)) <= CMD_SMR;
@@ -327,11 +327,11 @@ BEGIN
                             A(0)(10) <= '1';
                             tick_count <= d"514";
                             state <= ZQCL;
-                        WHEN (ZQCL & XXXXX) => IF tick THEN
+                        WHEN (ZQCL & "XXXXX") => IF tick THEN
                             state <= WRITE_LEVEL;
                             cycle <= "0";
                         END IF;
-                        WHEN (IDLE & XXXXX) => IF (rd OR wr) THEN
+                        WHEN (IDLE & "XXXXX") => IF (rd OR wr) THEN
                                     (nRAS(0), nCAS(0), nWE(0)) <= CMD_BA;
                                     BA(0) <= addr(ROW_WIDTH + COL_WIDTH + BANK_WIDTH - 1 DOWNTO ROW_WIDTH + COL_WIDTH);
                                     A(0) <= addr(ROW_WIDTH + COL_WIDTH - 1 DOWNTO COL_WIDTH);
@@ -377,7 +377,7 @@ BEGIN
                             dq_out(0) <= din;
                             dq_out(1) <= "0";
                             dq_oen <= b"0111";
-                            dm_out(0) <= NOT(addr(1 DOWNTO 0) = 3);
+                            dm_out(0) <= NOT(addr(1 DOWNTO 0) = b"11");
                         WHEN (WRTE & 6) => busy <= '0';
                             state <= IDLE;
                         WHEN (REFRESH & RC / 4) => busy <= '0';
@@ -406,7 +406,7 @@ BEGIN
                             IF NOT DDR3_dq(0) OR NOT DDR3_dq(8) THEN
                                 wstep <= wstep + 1;
                                 wlevelcnt <= "0";
-                                cycle <= TO_UNSIGNED(WLMRD, 5) / 4 - 1;
+                                cycle <= WLMRD / 4 - 1;
                             ELSE
                                 wlevelcnt <= wlevelcnt + 1;
                                 IF wlevelcnt = WLEVELCOUNT - 1 THEN
@@ -419,14 +419,14 @@ BEGIN
                                 END IF;
                             END IF;
                         WHEN (WRITE_LEVEL & (WLMRD + MRD) / 4 + 6) => (nRAS(0), nCAS(0), nWE(0)) <= CMD_SMR;
-                            BA(0) & A(0)(12 DOWNTO 0) <= MR2WR;
-                            END IF;
-                        WHEN (WRITE_LEVEL & (WLMRD + MRD) / 4 + 6) => cycle <= '0';
+                                BA(0) <= "0" & MR2WR(15 DOWNTO 13);
+                                A(0)(12 DOWNTO 0) <= MR2WR(12 DOWNTO 0);
+                        WHEN (WRITE_LEVEL & (WLMRD + MRD) / 4 + 6) => cycle <= "0";
                             state <= READ_CALIB;
                         WHEN (READ_CALIB & "00000") => (nRAS(0), nCAS(0), nWE(0)) <= CMD_BA;
-                            BA(0) <= '0';
-                            A(0) <= '0';
-                            rcalibcnt <= '0';
+                            BA(0) <= "0";
+                            A(0) <= "0";
+                            rcalibcnt <= "0";
                         WHEN (READ_CALIB & RCD / 4) => (nRAS(2), nCAS(2), nWE(2)) <= CMD_R;
                             A(2)(12) <= '1';
                             A(2)(10) <= '0';
@@ -434,13 +434,13 @@ BEGIN
                         WHEN (READ_CALIB & RCD / 4 + 10) => IF (rburstseen /= b"11") THEN
                                 rclksel <= rclksel + 1;
                                 rclkpos <= rclkpos + 1 WHEN rclksel = 7 ELSE rclkpos;
-                                rcalibcnt <= '0';
+                                rcalibcnt <= "0";
                                 cycle <= RCD / 4;
                             ELSE
                                 rcalibcnt <= rcalibcnt + 1;
                                 IF rcalibcnt = RCALIBCOUNT - 1 THEN
                                     rcalibdone <= '1';
-                                    nRAS(0) & nCAS(0) & nWE(0) <= CMD_PC;
+                                    (nRAS(0), nCAS(0), nWE(0)) <= CMD_PC;
                                     BA(0) <= '0';
                                     A(0) <= '0';
                                 ELSE

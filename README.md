@@ -1,1 +1,1 @@
-A start of DDR3 code built specifically for the module on the Tang Primer 20K.  Code is not done yet.  It is still being worked on.
+A start of DDR3 code built specifically for the module on the Tang Primer 20K.  Code is not done yet.  It is still being worked on.  This code was being translated from Verilog.  The JEDEC standard for DDR3 is free now though, so I am creating a new DDR3 algorithm based off of that.  This code is going to be deleted upon that completion.
